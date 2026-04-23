@@ -8,16 +8,14 @@ body{font-family:sans-serif;background:#0d0d0d;color:#fff;text-align:center;padd
 input,select,button{padding:10px;margin:5px;border-radius:6px;border:none;font-size:16px}
 button{background:#ffcc00;color:#000;font-weight:bold;cursor:pointer}
 .result-card{margin:10px;padding:12px;border:1px solid #444;border-radius:12px; background: #1a1a1a;}
-.card-img{width:90px;max-width:100%;transition:0.3s}
+/* Tối ưu ảnh lá bài để không bị lệch */
+.card-img{width:90px;max-width:100%;transition:0.3s; min-height: 140px; background: #222; border-radius: 4px;}
 .rev{transform:rotate(180deg)}
 .hidden{display:none}
 .lock{background:#111;border:2px solid #ffcc00}
-/* CSS QUAN TRỌNG: Đảm bảo khoảng cách dòng và chữ thoáng */
-#final{white-space:pre-wrap; margin-top:20px; text-align:left; line-height:1.8; font-size:17px; max-width:500px; margin-left:auto; margin-right:auto;}
-@media (max-width:600px){
-.card-img{width:70px}
-button{width:90%}
-}
+/* Chống dính chữ và tạo khoảng cách dòng thoáng đãng */
+#final{white-space:pre-wrap; margin-top:20px; text-align:left; line-height:1.8; font-size:17px; max-width:500px; margin-left:auto; margin-right:auto; color: #f0f0f0;}
+@media (max-width:600px){ .card-img{width:80px} button{width:90%} }
 </style>
 </head><body><h2>🔮 Nam Hải Oracle</h2><input id="name" placeholder="Họ và tên">
 <input id="question" placeholder="Bạn đang nghĩ gì..."><br><input id="day" type="number" placeholder="Ngày sinh">
@@ -32,17 +30,20 @@ button{width:90%}
 <option value="hesitate">Đang do dự</option>
 <option value="after">Đã quyết định</option>
 </select><br>
-<button onclick="startDraw()">Trải bài</button>
-<button onclick="toggleMusic()">🎵</button>
+<button onclick="startDraw()">Trải bài 🎵</button>
+<button onclick="toggleMusic()">🔊/🔇</button>
 <button onclick="resetApp()">🔄 Reset</button><div id="results"></div>
 <div id="final"></div>
 <button id="copyBtn" class="hidden" onclick="copyText()">📋 Sao chép</button>
 <div id="paywall" class="hidden"></div>
-<div id="history"></div><audio id="bgm" loop>
-<source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_5b0b6f2c2d.mp3">
-</audio><script>
+<div id="history"></div>
 
-// ===== DATA (GIỮ NGUYÊN 22 LÁ CỦA ANH) =====
+<audio id="bgm" loop>
+<source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_5b0b6f2c2d.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+// NGUYÊN BẢN 22 LÁ BÀI
 const cards = [
 {name:"Kẻ Khờ",meaning:"bắt đầu mới",reversedMeaning:"mất phương hướng"},
 {name:"Pháp Sư",meaning:"kiểm soát",reversedMeaning:"thiếu kiểm soát"},
@@ -68,161 +69,127 @@ const cards = [
 {name:"Thế Giới",meaning:"hoàn thành",reversedMeaning:"chưa trọn"}
 ];
 
-function shuffle(a){
-for(let i=a.length-1;i>0;i--){
-let j=Math.floor(Math.random()*(i+1));
-[a[i],a[j]]=[a[j],a[i]];
-}
-return a;
-}
-
-function validDOB(d,m,y){
-return d>=1&&d<=31 && m>=1&&m<=12 && y>=1900&&y<=2100;
-}
-
-function lifeNumber(d,m,y){
-let sum=(d+""+m+""+y).split("").reduce((a,b)=>a+parseInt(b),0);
-while(sum>9){
-sum=sum.toString().split("").reduce((a,b)=>a+parseInt(b),0);
-}
-return sum;
-}
+function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a;}
+function validDOB(d,m,y){return d>=1&&d<=31 && m>=1&&m<=12 && y>=1900&&y<=2100;}
+function lifeNumber(d,m,y){let sum=(d+""+m+""+y).split("").reduce((a,b)=>a+parseInt(b),0);while(sum>9){sum=sum.toString().split("").reduce((a,b)=>a+parseInt(b),0)}return sum;}
 
 let picked=[],step=0;
 let locked=localStorage.getItem("seen")==="1";
 
 function startDraw(){
-let name=document.getElementById("name").value.trim();
-let q=document.getElementById("question").value.trim();
-if(!name||!q){alert("Nam Hải xin nhắc: Bạn hãy nhập đủ Tên và Câu hỏi nhé!");return;}
-if(locked){showPaywall();return;}
-step=0;
-picked=shuffle(cards.map((c,i)=>({...c,index:i}))).slice(0,5).map(c=>({
-card:c,rev:Math.random()<0.5
-}));
-document.getElementById("results").innerHTML="";
-document.getElementById("final").innerHTML="";
-document.getElementById("copyBtn").classList.add("hidden");
-showNext();
+    let name=document.getElementById("name").value.trim();
+    let q=document.getElementById("question").value.trim();
+    if(!name||!q){alert("Nam Hải xin nhắc: Bạn hãy nhập đủ Tên và Câu hỏi nhé!");return;}
+    if(locked){showPaywall();return;}
+    
+    // KÍCH HOẠT NHẠC (Xử lý lỗi chặn tự động phát)
+    let m = document.getElementById("bgm");
+    m.play().catch(() => console.log("User interaction required for audio"));
+
+    step=0;
+    picked=shuffle(cards.map((c,i)=>({...c,index:i}))).slice(0,5).map(c=>({card:c,rev:Math.random()<0.5}));
+    document.getElementById("results").innerHTML="";
+    document.getElementById("final").innerHTML="";
+    document.getElementById("copyBtn").classList.add("hidden");
+    showNext();
 }
 
 function showNext(){
-if(step<5){
-let roles=["Quá khứ","Hiện tại","Vấn đề","Hành vi","Kết quả"];
-let p=picked[step];
-document.getElementById("results").innerHTML+=`
-<div class="result-card">
-<b>${roles[step]}</b><br>
-<img class="card-img ${p.rev?'rev':''}" src="https://www.sacred-texts.com/tarot/pkt/img/ar${p.card.index}.jpg"><br>
-${p.card.name}
-<br>
-${step<4?`<button onclick="showNext()">Tiếp</button>`:`<button onclick="finish()">Xem kết quả</button>`}
-</div>`;
-step++;
-window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"});
-}
+    if(step<5){
+        let roles=["Quá khứ","Hiện tại","Vấn đề","Hành vi","Kết quả"];
+        let p=picked[step];
+        // SỬA LỖI HÌNH ẢNH: Dùng server ảnh thô ổn định hơn
+        let imgUrl = `https://raw.githubusercontent.com/iam-shanmugha/Tarot-Card-API/main/static/cards/ar${p.card.index}.jpg`;
+        
+        document.getElementById("results").innerHTML+=`
+        <div class="result-card">
+            <b>${roles[step]}</b><br>
+            <img class="card-img ${p.rev?'rev':''}" src="${imgUrl}" onerror="this.src='https://via.placeholder.com/90x150?text=Card'"><br>
+            ${p.card.name}<br>
+            ${step<4?`<button onclick="showNext()">Tiếp</button>`:`<button onclick="finish()">Xem kết quả</button>`}
+        </div>`;
+        step++;
+        window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"});
+    }
 }
 
-// ===== HÀM TYPING EFFECT ĐÃ SỬA LỖI DÍNH CHỮ =====
+// HÀM TYPING CHỐNG DÍNH CHỮ TUYỆT ĐỐI
 function typeText(text){
-let i=0;
-let el=document.getElementById("final");
-el.innerHTML=""; // Dùng innerHTML để hỗ trợ xuống dòng
-let interval=setInterval(()=>{
-if(text[i] === " ") {
-    el.innerHTML += "&nbsp;"; // Dùng mã đặc biệt cho dấu cách
-} else if(text[i] === "\n") {
-    el.innerHTML += "<br>"; // Chuyển dấu xuống dòng thành thẻ <br>
-} else {
-    el.innerHTML += text[i];
-}
-i++;
-if(i>=text.length) clearInterval(interval);
-},25);
+    let i=0; let el=document.getElementById("final"); el.innerHTML="";
+    let interval=setInterval(()=>{
+        if(text[i] === " ") {
+            el.innerHTML += "&nbsp;"; 
+        } else if(text[i] === "\n") {
+            el.innerHTML += "<br>"; 
+        } else {
+            el.innerHTML += text[i];
+        }
+        i++;
+        if(i>=text.length) clearInterval(interval);
+    },25);
 }
 
-// ===== CẢI THIỆN VĂN PHONG ENGINE =====
 function finish(){
-let name=document.getElementById("name").value;
-let q=document.getElementById("question").value;
-let topic=document.getElementById("topic").value;
-let d=parseInt(document.getElementById("day").value);
-let m=parseInt(document.getElementById("month").value);
-let y=parseInt(document.getElementById("year").value);
-let num=validDOB(d,m,y)?lifeNumber(d,m,y):null;
-let mgs=picked.map(p=>p.rev?p.card.reversedMeaning:p.card.meaning);
+    let name=document.getElementById("name").value;
+    let topic=document.getElementById("topic").value;
+    let d=parseInt(document.getElementById("day").value);
+    let m=parseInt(document.getElementById("month").value);
+    let y=parseInt(document.getElementById("year").value);
+    let num=validDOB(d,m,y)?lifeNumber(d,m,y):null;
+    let mgs=picked.map(p=>p.rev?p.card.reversedMeaning:p.card.meaning);
 
-let intro="";
-if(topic==="love") intro="Về cung bậc cảm xúc, ";
-if(topic==="work") intro="Trong thực tế khách quan, ";
-if(topic==="mind") intro="Nhìn sâu vào thế giới nội tâm, ";
-if(topic==="decision") intro="Ở thời điểm đưa ra lựa chọn này, ";
+    let intro = (topic==="love") ? "Về cung bậc cảm xúc, " : (topic==="work") ? "Trong thực tế khách quan, " : (topic==="mind") ? "Nhìn sâu vào thế giới nội tâm, " : "Ở thời điểm đưa ra lựa chọn này, ";
 
-let s=`👉 Chào ${name}, không phải ngẫu nhiên mà những lá bài này hiện diện trước mặt bạn.\n\n`;
-s+=`${intro}mọi chuyện bắt đầu từ quá khứ khi bạn cảm thấy ${mgs[0]}. `;
-s+=`Chính điều này đã dẫn dắt đến hiện tại, nơi bạn đang ở trong trạng thái ${mgs[1]}.\n\n`;
-s+=`Tuy nhiên, nút thắt thực sự mà bạn cần lưu tâm chính là sự ${mgs[2]}. `;
-s+=`Có thể bạn đang cố gắng xử lý bằng cách ${mgs[3]}, nhưng thành thật mà nói, điều này vẫn chưa thể giải quyết triệt để vấn đề gốc rễ.\n\n`;
-s+=`Nếu bạn dám thay đổi và đối diện, kết quả cuối cùng sẽ hướng tới sự ${mgs[4]}.`;
+    let s=`👉 Chào ${name}, không phải ngẫu nhiên mà những lá bài này hiện diện trước mặt bạn.\n\n`;
+    s+=`${intro}mọi chuyện bắt đầu từ quá khứ khi bạn cảm thấy ${mgs[0]}. `;
+    s+=`Chính điều này đã dẫn dắt đến hiện tại, nơi bạn đang ở trong trạng thái ${mgs[1]}.\n\n`;
+    s+=`Tuy nhiên, nút thắt thực sự mà bạn cần lưu tâm chính là sự ${mgs[2]}. `;
+    s+=`Có thể bạn đang cố gắng xử lý bằng cách ${mgs[3]}, nhưng thành thật mà nói, điều này vẫn chưa thể giải quyết triệt để vấn đề gốc rễ.\n\n`;
+    s+=`Nếu bạn dám thay đổi và đối diện, kết quả cuối cùng sẽ hướng tới sự ${mgs[4]}.\n\n`;
 
-if(picked[4].rev) s+="\n\n⚠️ Nam Hải tiên sinh lưu ý: Kết quả này có thể xoay chiều theo hướng tiêu cực nếu bạn vẫn tiếp tục trì hoãn.";
-if(num==7) s+="\n\n✨ Với con số chủ đạo 7, bạn có một trực giác rất mạnh. Đừng tìm câu trả lời bên ngoài, hãy nhìn sâu vào bên trong chính mình.";
-if(num==8) s+="\n\n✨ Với con số chủ đạo 8, bạn là người của hành động. Hãy cân nhắc mọi thứ dựa trên sự công bằng và lợi ích lâu dài.";
+    if(picked[4].rev) s+="⚠️ Lưu ý: Kết quả này có thể xoay chiều tiêu cực nếu bạn vẫn tiếp tục trì hoãn.\n\n";
+    if(num==7) s+="✨ Với số chủ đạo 7, hãy tin vào trực giác bên trong mình.\n\n";
+    if(num==8) s+="✨ Với số chủ đạo 8, hãy quyết đoán và thực tế hơn.\n\n";
 
-s+="\n\n💡 Điều bạn đang né tránh thực chất là: Bạn đã biết câu trả lời rồi, chỉ là bạn chưa đủ can đảm để đối diện với nó mà thôi.";
-s+="\n\n— Lời bình từ Nam Hải tiên sinh";
+    s+="💡 Điều bạn đang né tránh thực chất là: Bạn đã biết câu trả lời rồi, chỉ là bạn chưa đủ can đảm để chấp nhận nó mà thôi.\n\n";
+    s+="— Lời bình từ Nam Hải tiên sinh";
 
-let short=s.slice(0,Math.floor(s.length*0.72));
-typeText(short);
+    let short=s.slice(0,Math.floor(s.length*0.72));
+    typeText(short);
 
-document.getElementById("paywall").classList.remove("hidden");
-document.getElementById("paywall").innerHTML=`
-<div class="result-card lock">
-<p>🔒 Nam Hải tiên sinh đã soạn xong lời giải mã đầy đủ cho bạn.</p>
-<p><small>Nhập mã để mở khóa phần kết quả và lời khuyên quan trọng nhất.</small></p>
-<input id="code" placeholder="Mã mở khóa..." style="width:150px">
-<button onclick="unlock('${encodeURIComponent(s)}')">Mở khóa ngay</button>
-<p id="err" style="color:red"></p>
-</div>`;
+    document.getElementById("paywall").classList.remove("hidden");
+    document.getElementById("paywall").innerHTML=`
+    <div class="result-card lock">
+        <p>🔒 Nhập mã để xem trọn vẹn lời giải mã từ Nam Hải tiên sinh.</p>
+        <input id="code" placeholder="Mã mở khóa..." style="width:140px">
+        <button onclick="unlock('${encodeURIComponent(s)}')">Mở khóa</button>
+        <p id="err" style="color:red"></p>
+    </div>`;
 
-localStorage.setItem("seen","1");
-locked=true;
-saveHistory();
+    localStorage.setItem("seen","1");
+    locked=true;
+    saveHistory();
 }
 
 function unlock(full){
-let code=document.getElementById("code").value;
-if(code==="NAMHAI"){
-let text=decodeURIComponent(full);
-typeText(text);
-document.getElementById("paywall").classList.add("hidden");
-document.getElementById("copyBtn").classList.remove("hidden");
-window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"});
-}else{
-document.getElementById("err").innerText="Mã không đúng rồi!";
-}
+    let code=document.getElementById("code").value;
+    if(code==="NAMHAI"){
+        typeText(decodeURIComponent(full));
+        document.getElementById("paywall").classList.add("hidden");
+        document.getElementById("copyBtn").classList.remove("hidden");
+    }else{
+        document.getElementById("err").innerText="Mã chưa chính xác!";
+    }
 }
 
-function copyText(){
-navigator.clipboard.writeText(document.getElementById("final").innerText);
-alert("Đã sao chép lời tiên tri!");
-}
-
-function resetApp(){
-localStorage.clear();
-location.reload();
-}
-
+function copyText(){ navigator.clipboard.writeText(document.getElementById("final").innerText.replace(/&nbsp;/g,' ')); alert("Đã sao chép!"); }
+function resetApp(){ localStorage.clear(); location.reload(); }
+function toggleMusic(){ let m=document.getElementById("bgm"); if(m.paused){m.play()}else{m.pause()} }
 function saveHistory(){
-let h=JSON.parse(localStorage.getItem("tarot")||"[]");
-h.push({t:new Date().toLocaleString()});
-if(h.length>5)h.shift();
-localStorage.setItem("tarot",JSON.stringify(h));
-}
-
-function toggleMusic(){
-let m=document.getElementById("bgm");
-if(m.paused){m.play()}else{m.pause()}
+    let h=JSON.parse(localStorage.getItem("tarot")||"[]");
+    h.push({t:new Date().toLocaleString()});
+    if(h.length>5)h.shift();
+    localStorage.setItem("tarot",JSON.stringify(h));
 }
 </script></body></html>
 
